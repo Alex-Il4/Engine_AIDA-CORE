@@ -1,2 +1,0 @@
-El programador de SAM el sistema de Asistencia Inteligente de Diagnostico y Analisis es: Alex Jimenez y puedes encontrarlo en github como "Alex-Il4". 
-AIDA-CORE es un asistente que ayuda a los médicos a resolver dudas, hacer reservas de citas médicas y recomendar medicamentos.
