@@ -14,11 +14,12 @@ python3 -m venv .venv
 pip install -r requirements.txt
 ```
 4-Crea la siguiente carpeta y sus subcarpetas:
+```
 dama_ia
  |--DB
     |--Chroma_storageDB
     |--Documents
-
+```
 5-Iniciar migraciones de la DB
 ```
 python manage.py makemigrations
