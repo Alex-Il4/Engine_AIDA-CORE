@@ -13,21 +13,20 @@ python3 -m venv .venv
 ```
 pip install -r requirements.txt
 ```
-4-Iniciar servidor
-```
-python manage.py runserver
-```
-5-Crea la siguiente carpeta y sus subcarpetas:
+4-Crea la siguiente carpeta y sus subcarpetas:
 dama_ia
  |--DB
     |--Chroma_storageDB
     |--Documents
 
-6-Iniciar migraciones de la DB
+5-Iniciar migraciones de la DB
 ```
 python manage.py makemigrations
 ```
 ```
 python manage.py migrate
 ```
-
+6-Iniciar servidor
+```
+python manage.py runserver
+```
