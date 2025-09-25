@@ -128,3 +128,33 @@ def generate_response(request):
             {"error": "Error al conectar con el servidor de Ollama.", "details": str(e)},
             status=status.HTTP_503_SERVICE_UNAVAILABLE
         )
+ #Inicio del endpoint para eliminar historial
+@api_view(['DELETE'])
+def clear_chat_history(request, user_id):
+    """
+    Vista que elimina todo el historial de chat para un user_id específico.
+    """
+    try:
+        # Contar los registros que se van a eliminar
+        records_to_delete = ChatHistory.objects.filter(session_id=user_id)
+        count = records_to_delete.count()
+
+        if count == 0:
+            return Response(
+                {"message": f"No se encontró historial para el usuario con ID {user_id}."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Eliminar todos los registros que coinciden con el user_id
+        records_to_delete.delete()
+
+        return Response(
+            {"message": f"Se ha eliminado el historial de chat para el usuario {user_id}. {count} registros eliminados."},
+            status=status.HTTP_200_OK
+        )
+
+    except Exception as e:
+        return Response(
+            {"error": "Ocurrió un error al intentar limpiar el historial.", "details": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
