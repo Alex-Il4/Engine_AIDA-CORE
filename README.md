@@ -1,5 +1,6 @@
 # Engine_AIDA-CORE
 Motor para ejecutar y consumir modelos de Inteligencia Artificial de Ollama, para un sistema medico.
+Para utilizar el sistema debe tener instalado ollama y los modelos a utilizar.
 
 1-Crear entorno virtual
 ```
