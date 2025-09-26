@@ -218,6 +218,7 @@ def analyze_image_view(request):
         #"Actúa como un asistente médico que ayuda a entender una receta. "
         #"Describe los medicamentos listados, la dosis y las instrucciones de uso de forma clara y sencilla."
         "Describe el contenido que ves en la imagen."
+        "Debes responder en español."
     )
     #Agregando un promt del usuario
     user_prompt = request.data.get('prompt', analysis_prompt)
