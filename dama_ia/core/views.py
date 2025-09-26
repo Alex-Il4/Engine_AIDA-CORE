@@ -1,5 +1,6 @@
 import json
 import requests
+import base64
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import api_view
@@ -17,6 +18,7 @@ import datetime
 # Ruta a la DB vectorial
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, '..', 'DB', 'Chroma_storageDB')
+OLLAMA_URL = 'http://localhost:11434/api/generate'
 
 # Iniciando modelos de ollama.
 try:
@@ -158,6 +160,7 @@ def clear_chat_history(request, user_id):
             {"error": "Ocurrió un error al intentar limpiar el historial.", "details": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+    
     #Iincio del endpoint para ver historial
 @api_view(['GET'])
 def get_chat_history(request, user_id):
@@ -185,3 +188,18 @@ def get_chat_history(request, user_id):
             {"error": "Ocurrió un error al intentar obtener el historial.", "details": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )   
+    
+#Endpoint para analizar la imagen
+@api_view(['POST'])
+def analyze_image_view(request):
+    """
+    Vista que recibe una imagen y la envía a LLaVA para su análisis.
+    """
+    if 'image_file' not in request.FILES:
+        return Response(
+            {"error": "El archivo de imagen ('image_file') es requerido."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    image_file = request.FILES['image_file']
+    
