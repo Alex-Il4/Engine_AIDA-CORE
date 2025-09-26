@@ -203,3 +203,19 @@ def analyze_image_view(request):
 
     image_file = request.FILES['image_file']
     
+    # 1. Leer el archivo y codificarlo en Base64
+    try:
+        image_data = image_file.read()
+        image_base64 = base64.b64encode(image_data).decode('utf-8')
+    except Exception as e:
+        return Response(
+            {"error": "Error al procesar el archivo de imagen.", "details": str(e)},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # 2. Definir el prompt y el payload
+    analysis_prompt = (
+        #"Actúa como un asistente médico que ayuda a entender una receta. "
+        #"Describe los medicamentos listados, la dosis y las instrucciones de uso de forma clara y sencilla."
+        "Describe el contenido que ves en la imagen."
+    )
