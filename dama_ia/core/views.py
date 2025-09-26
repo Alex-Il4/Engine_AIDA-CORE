@@ -219,3 +219,31 @@ def analyze_image_view(request):
         #"Describe los medicamentos listados, la dosis y las instrucciones de uso de forma clara y sencilla."
         "Describe el contenido que ves en la imagen."
     )
+    #Agregando un promt del usuario
+    user_prompt = request.data.get('prompt', analysis_prompt)
+
+    payload = {
+        "model": "llava",  # Modelo LLaVA
+        "prompt": user_prompt,
+        "images": [image_base64],  # Aquí se inserta la imagen en Base64
+        "stream": False
+    }
+
+    # 3. Enviar a Ollama
+    try:
+        ollama_response = requests.post(OLLAMA_URL, json=payload)
+        ollama_response.raise_for_status()
+
+        response_data = ollama_response.json()
+        generated_text = response_data.get('response', '')
+
+        return Response({
+            "generated_text": generated_text,
+            "status": "success"
+        })
+
+    except requests.exceptions.RequestException as e:
+        return Response(
+            {"error": "Error al conectar con el servidor de LLaVA.", "details": str(e)},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE
+        )
