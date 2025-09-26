@@ -158,3 +158,30 @@ def clear_chat_history(request, user_id):
             {"error": "Ocurrió un error al intentar limpiar el historial.", "details": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+    #Iincio del endpoint para ver historial
+    @api_view(['GET'])
+    def get_chat_history(request, user_id):
+        """
+        Vista que devuelve el historial de chat para un user_id específico.
+        """
+        try:
+            # Obtener los registros que coinciden con el user_id
+            records = ChatHistory.objects.filter(session_id=user_id)
+
+            # Convertir los registros a un diccionario
+            records_dict = [{
+                'user_message': record.user_message,
+                'bot_response': record.bot_response,
+                'timestamp': record.timestamp
+            } for record in records]
+
+            return Response({
+                "records": records_dict,
+                "status": "success"
+            })
+
+        except Exception as e:
+            return Response(
+                {"error": "Ocurrió un error al intentar obtener el historial.", "details": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )   
