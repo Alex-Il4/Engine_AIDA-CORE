@@ -31,7 +31,7 @@ try:
         embedding_function=ollama_embeddings,
         persist_directory=DB_PATH
     )
-    print("Sistemas de RAG y LLM cargados correctamente.")
+    print("Sistemas RAG y LLM cargados correctamente.")
 
 except Exception as e:
     print(f"Error al cargar modelos o base de datos: {e}")
