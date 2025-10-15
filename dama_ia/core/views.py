@@ -66,7 +66,7 @@ def generate_response(request):
     """
     if 'prompt' not in request.data or 'user_id' not in request.data:
         return Response(
-            {"error": "El 'prompt' y el 'user_id' son requeridos."},
+            {"error": "El 'prompt' y el 'user_id' son necesarios."},
             status=status.HTTP_400_BAD_REQUEST
         )
 
