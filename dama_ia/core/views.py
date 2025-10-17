@@ -62,7 +62,7 @@ rag_prompt = PromptTemplate.from_template(prompt_template)
 @api_view(['POST'])
 def generate_response(request):
     """
-    Vista que recibe la pregunta y el user_id, y devuelve una respuesta contextualizada...
+    Vista que recibe la pregunta y el user_id, y devuelve una respuesta contextualizada.
     """
     if 'prompt' not in request.data or 'user_id' not in request.data:
         return Response(
