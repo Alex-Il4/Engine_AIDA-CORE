@@ -75,7 +75,7 @@ def generate_response(request):
 
     if not llm or not vector_db:
         return Response(
-            {"error": "El servidor no está disponible. Revisar conexion con Ollama o la DB vectorial."},
+            {"error": "El servidor no esta disponible. Revisar conexion con Ollama o la DB vectorial."},
             status=status.HTTP_503_SERVICE_UNAVAILABLE
         )
 
