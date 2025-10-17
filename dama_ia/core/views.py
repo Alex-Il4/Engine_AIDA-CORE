@@ -58,78 +58,130 @@ PREGUNTA:
 """
 rag_prompt = PromptTemplate.from_template(prompt_template)
 
+ #Inicio del endpoint para generear respuesta ya sea de LLM/RAG o LlaVA
+ # --- Funciones Auxiliares ---
 
-@api_view(['POST'])
-def generate_response(request):
+def _call_llava_model(image_file, user_prompt, user_id):
     """
-    Vista que recibe la pregunta y el user_id, y devuelve una respuesta contextualizada.
+    Función que maneja la lógica de codificación y llamada al modelo LLaVA.
     """
-    if 'prompt' not in request.data or 'user_id' not in request.data:
-        return Response(
-            {"error": "El 'prompt' y el 'user_id' son necesarios."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    prompt = request.data.get('prompt')
-    user_id = request.data.get('user_id')
-
-    if not llm or not vector_db:
-        return Response(
-            {"error": "El servidor no esta disponible. Revisar conexion con Ollama o la DB vectorial."},
-            status=status.HTTP_503_SERVICE_UNAVAILABLE
-        )
-
     try:
-        # Obtener la fecha actual en un formato legible
+        # 1. Leer y Codificar Imagen a Base64
+        image_data = image_file.read()
+        image_base64 = base64.b64encode(image_data).decode('utf-8')
+
+        # 2. Definir Prompt para Análisis
+        analysis_prompt = user_prompt.strip() or (
+            "Actúa como un asistente médico. Describe los medicamentos, la dosis y las instrucciones "
+            "de la receta de forma clara y sencilla."
+        )
+
+        payload = {
+            "model": "llava",  # Modelo LLaVA
+            "prompt": analysis_prompt,
+            "images": [image_base64],
+            "stream": False
+        }
+        
+        # 3. Llamar a Ollama
+        response_data = requests.post(OLLAMA_URL, json=payload).json()
+        generated_text = response_data.get('response', 'Error: No se recibió respuesta de LLaVA.')
+        
+        return generated_text
+
+    except Exception as e:
+        print(f"Error en LLaVA: {e}")
+        return f"Error al procesar la imagen con LLaVA: {str(e)}"
+
+def _call_llm_rag_model(user_prompt, user_id):
+    """
+    Función que maneja la lógica de RAG, memoria y llamada al modelo AIDAl-CORE.
+    """
+    try:
+        # 1. Obtener datos de contexto (RAG y Memoria)
         current_date = datetime.date.today().strftime("%d de %B de %Y")
-        # 1. Recuperar el historial de la conversación (los últimos 5 mensajes)
         history_objects = ChatHistory.objects.filter(session_id=user_id).order_by('-timestamp')[:5]
         history_formatted = ""
-        for turn in reversed(history_objects): # Invertir para que el orden sea cronológico
+        for turn in reversed(history_objects):
             history_formatted += f"Usuario: {turn.user_message}\n"
             history_formatted += f"Asistente: {turn.bot_response}\n"
 
-        # 2. Fase de Recuperación RAG: Buscar los documentos más relevantes
-        results = vector_db.similarity_search(prompt, k=3)
+        # 2. RAG: Buscar documentos relevantes
+        results = vector_db.similarity_search(user_prompt, k=3)
         context = "\n\n".join([doc.page_content for doc in results])
 
-        # 3. Fase de Aumento: Crea el prompt aumentado con el contexto y la memoria
+        # 3. Crear Prompt Aumentado
         formatted_prompt = rag_prompt.format(
             history=history_formatted,
             context=context,
-            question=prompt,
+            question=user_prompt,
             current_date=current_date
         )
 
-        # 4. Fase de Generación: Envía el prompt completo a Ollama
+        # 4. Llamar a Ollama
         response_data = requests.post(
-            'http://localhost:11434/api/generate',
-            json={
-                'model': 'AIDAl-CORE',
-                'prompt': formatted_prompt,
-                'stream': False,
-            },
+            OLLAMA_URL,
+            json={'model': 'AIDAl-CORE', 'prompt': formatted_prompt, 'stream': False},
             headers={'Content-Type': 'application/json'}
         ).json()
-        generated_text = response_data.get('response', '')
+        
+        generated_text = response_data.get('response', 'Error: No se recibió respuesta del LLM.')
+        
+        return generated_text
 
-        # 5. Guardar la nueva interacción en el historial
+    except Exception as e:
+        print(f"Error en LLM/RAG: {e}")
+        return f"Error al procesar la solicitud de texto con LLM: {str(e)}"
+
+
+# --- Vista Unificada Principal ---
+
+@api_view(['POST'])
+def smart_generate_response_view(request):
+    """
+    Vista UNIFICADA que decide si usar LLaVA (si hay imagen) o LLM (si es solo texto).
+    """
+    # 1. Validaciones mínimas
+    user_id = request.data.get('user_id')
+    user_prompt = request.data.get('prompt', '')
+
+    if not user_id:
+         return Response({"error": "El 'user_id' es requerido."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # 2. 🔑 LÓGICA DE DECISIÓN CLAVE 🔑
+    
+    # Comprobar si hay un archivo de imagen en la petición (multipart/form-data)
+    image_file = request.FILES.get('image_file')
+
+    if image_file:
+        # --- PATH 1: Procesamiento de Imagen (LLaVA) ---
+        
+        # El prompt es opcional, puede ser solo la imagen
+        print(f"Ruta: Imagen detectada para user_id {user_id}. Usando LLaVA.")
+        generated_text = _call_llava_model(image_file, user_prompt, user_id)
+        
+        # NOTA: No guardamos el historial del chat para LLaVA, solo la respuesta de texto (opcional).
+
+    else:
+        # --- PATH 2: Procesamiento de Texto (LLM/RAG) ---
+        
+        if not user_prompt:
+            return Response({"error": "Se requiere un 'prompt' o un archivo de imagen."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        print(f"Ruta: Solo texto para user_id {user_id}. Usando LLM/RAG.")
+        generated_text = _call_llm_rag_model(user_prompt, user_id)
+        
+        # Guardar historial SOLO si es una conversación de texto con el LLM/RAG
         ChatHistory.objects.create(
             session_id=user_id,
-            user_message=prompt,
+            user_message=user_prompt,
             bot_response=generated_text
         )
 
-        return Response({
-            "generated_text": generated_text,
-            "status": "success"
-        })
-
-    except requests.exceptions.RequestException as e:
-        return Response(
-            {"error": "Error al conectar con el servidor de Ollama.", "details": str(e)},
-            status=status.HTTP_503_SERVICE_UNAVAILABLE
-        )
+    return Response({
+        "generated_text": generated_text,
+        "status": "success"
+    })
  #Inicio del endpoint para eliminar historial
 @api_view(['DELETE'])
 def clear_chat_history(request, user_id):
@@ -188,63 +240,3 @@ def get_chat_history(request, user_id):
             {"error": "Ocurrió un error al intentar obtener el historial.", "details": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )   
-    
-#Endpoint para analizar la imagen
-@api_view(['POST'])
-def analyze_image_view(request):
-    """
-    Vista que recibe una imagen y la envía a LLaVA para su análisis.
-    """
-    if 'image_file' not in request.FILES:
-        return Response(
-            {"error": "El archivo de imagen ('image_file') es requerido."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    image_file = request.FILES['image_file']
-    
-    # 1. Leer el archivo y codificarlo en Base64
-    try:
-        image_data = image_file.read()
-        image_base64 = base64.b64encode(image_data).decode('utf-8')
-    except Exception as e:
-        return Response(
-            {"error": "Error al procesar el archivo de imagen.", "details": str(e)},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    # 2. Definir el prompt y el payload
-    analysis_prompt = (
-        #"Actúa como un asistente médico que ayuda a entender una receta. "
-        #"Describe los medicamentos listados, la dosis y las instrucciones de uso de forma clara y sencilla."
-        "Describe el contenido que ves en la imagen."
-        "Debes responder en español."
-    )
-    #Agregando un promt del usuario
-    user_prompt = request.data.get('prompt', analysis_prompt)
-
-    payload = {
-        "model": "llava",  # Modelo LLaVA
-        "prompt": user_prompt,
-        "images": [image_base64],  # Aquí se inserta la imagen en Base64
-        "stream": False
-    }
-
-    # 3. Enviar a Ollama
-    try:
-        ollama_response = requests.post(OLLAMA_URL, json=payload)
-        ollama_response.raise_for_status()
-
-        response_data = ollama_response.json()
-        generated_text = response_data.get('response', '')
-
-        return Response({
-            "generated_text": generated_text,
-            "status": "success"
-        })
-
-    except requests.exceptions.RequestException as e:
-        return Response(
-            {"error": "Error al conectar con el servidor de LLaVA.", "details": str(e)},
-            status=status.HTTP_503_SERVICE_UNAVAILABLE
-        )

@@ -1,10 +1,9 @@
 from django.urls import path
-from .views import generate_response, clear_chat_history, get_chat_history, analyze_image_view
+from .views import smart_generate_response_view, clear_chat_history, get_chat_history
 
 urlpatterns = [
     # Rutas para interactuar con el modelo de LLM
-    path('generate/', generate_response, name='generate_response'),
     path('chat/history/clear/<str:user_id>/', clear_chat_history, name='clear_chat_history'),
     path('chat/history/<str:user_id>/', get_chat_history, name='get_chat_history'),
-    path('analyze/image/', analyze_image_view, name='analyze_image_view'),
+    path('chat/response/', smart_generate_response_view, name='smart_generate_response'),
 ]
