@@ -155,13 +155,20 @@ def smart_generate_response_view(request):
 
     if image_file:
         # --- PATH 1: Procesamiento de Imagen (LLaVA) ---
-        
-        # El prompt es opcional, puede ser solo la imagen
         print(f"Ruta: Imagen detectada para user_id {user_id}. Usando LLaVA.")
         generated_text = _call_llava_model(image_file, user_prompt, user_id)
         
-        # NOTA: No guardamos el historial del chat para LLaVA, solo la respuesta de texto (opcional).
+        # 🔑 CORRECCIÓN CLAVE: Guardar historial de la interacción de imagen 🔑
+        
+        # Si el usuario solo envió la imagen sin texto, usamos un mensaje por defecto
+        user_message_to_save = user_prompt.strip() if user_prompt.strip() else "Usuario envió una imagen para análisis."
 
+        ChatHistory.objects.create(
+            session_id=user_id,
+            # Añadimos un tag para que el LLM sepa que fue una respuesta de imagen
+            user_message=f"[IMAGEN ANALIZADA] {user_message_to_save}",
+            bot_response=generated_text
+        )
     else:
         # --- PATH 2: Procesamiento de Texto (LLM/RAG) ---
         
