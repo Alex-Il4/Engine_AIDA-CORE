@@ -11,7 +11,7 @@ from langchain.prompts import PromptTemplate
 from langchain_community.llms import Ollama
 from core.models import ChatHistory
 import datetime
-from .authentication_fb import firebase_auth_required
+#from .authentication_fb import firebase_auth_required
 
 # Cargar modelos y base de datos vectorial una sola vez
 # Esto se ejecuta solo al iniciar el servidor para optimizar el rendimiento.
