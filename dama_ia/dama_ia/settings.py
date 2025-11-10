@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -129,3 +131,9 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+load_dotenv()
+RELATIVE_PATH = os.getenv('FIREBASE_CREDENTIALS')
+if RELATIVE_PATH:
+    SERVICE_ACCOUNT_PATH = os.path.join(BASE_DIR, RELATIVE_PATH.strip('"'))

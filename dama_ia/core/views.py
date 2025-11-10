@@ -11,6 +11,7 @@ from langchain.prompts import PromptTemplate
 from langchain_community.llms import Ollama
 from core.models import ChatHistory
 import datetime
+from .authentication_fb import firebase_auth_required
 
 # Cargar modelos y base de datos vectorial una sola vez
 # Esto se ejecuta solo al iniciar el servidor para optimizar el rendimiento.
@@ -19,6 +20,8 @@ import datetime
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, '..', 'DB', 'Chroma_storageDB')
 OLLAMA_URL = 'http://localhost:11434/api/generate'
+
+secure_Id = requests.user_id
 
 # Iniciando modelos de ollama.
 try:
@@ -141,31 +144,27 @@ def smart_generate_response_view(request):
     """
     Vista UNIFICADA que decide si usar LLaVA (si hay imagen) o LLM (si es solo texto).
     """
-    # 1. Validaciones mínimas
     user_id = request.data.get('user_id')
     user_prompt = request.data.get('prompt', '')
 
     if not user_id:
          return Response({"error": "El 'user_id' es requerido."}, status=status.HTTP_400_BAD_REQUEST)
     
-    # 2. 🔑 LÓGICA DE DECISIÓN CLAVE 🔑
     
-    # Comprobar si hay un archivo de imagen en la petición (multipart/form-data)
+    #Comprobar si hay un archivo de imagen en la peticion (form-data)
     image_file = request.FILES.get('image_file')
 
     if image_file:
-        # --- PATH 1: Procesamiento de Imagen (LLaVA) ---
+        #1: Procesamiento de Imagen
         print(f"Ruta: Imagen detectada para user_id {user_id}. Usando LLaVA.")
         generated_text = _call_llava_model(image_file, user_prompt, user_id)
         
-        # 🔑 CORRECCIÓN CLAVE: Guardar historial de la interacción de imagen 🔑
-        
-        # Si el usuario solo envió la imagen sin texto, usamos un mensaje por defecto
+        #Si el usuario solo envio la imagen sin prompt, usar un mensaje por defecto
         user_message_to_save = user_prompt.strip() if user_prompt.strip() else "Usuario envió una imagen para análisis."
 
         ChatHistory.objects.create(
             session_id=user_id,
-            # Añadimos un tag para que el LLM sepa que fue una respuesta de imagen
+            #Añadir un tag para que el LLM sepa que fue una respuesta de imagen
             user_message=f"[IMAGEN ANALIZADA] {user_message_to_save}",
             bot_response=generated_text
         )

@@ -10,6 +10,7 @@ __pycache__/
 # Archivos de bases de datos
 *.db
 *.sqlite3
+/firebase/chat-f521d-firebase-adminsdk-fbsvc-d83809c855.json
 
 # Archivos de configuración sensibles
 .env
