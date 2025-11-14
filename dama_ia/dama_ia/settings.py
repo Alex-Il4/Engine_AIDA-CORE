@@ -30,6 +30,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
     '192.168.1.40',
     '127.0.0.1',
+    '*',
 ]
 
 
@@ -137,3 +138,12 @@ load_dotenv()
 RELATIVE_PATH = os.getenv('FIREBASE_CREDENTIALS')
 if RELATIVE_PATH:
     SERVICE_ACCOUNT_PATH = os.path.join(BASE_DIR, RELATIVE_PATH.strip('"'))
+    
+
+try:
+    # Asegúrate de que esta ruta de importación sea correcta
+    from .firebase import auth_settings
+except ImportError as e:
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.error(f"Error al importar la configuración de Firebase: {e}")

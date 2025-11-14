@@ -35,7 +35,7 @@ def firebase_auth_required(view_func):
             # Ejecutar la función de vista original
             return view_func(request, *args, **kwargs)
 
-        except auth.InvalidIdToken:
+        except auth.InvalidIdTokenError:
             return JsonResponse({'error': 'Token de Firebase inválido o caducado.'}, status=401)
         except Exception as e:
             # Manejo de otros errores de Firebase
